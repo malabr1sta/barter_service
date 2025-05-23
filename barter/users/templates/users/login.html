@@ -1,0 +1,17 @@
+{% extends "ads/base.html" %}
+{% block title %}Вход | Бартер{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:400px;margin:48px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px #ddd;padding:32px;">
+  <h2 style="margin-bottom:24px;text-align:center;">Вход</h2>
+  <form method="post" style="display:flex;flex-direction:column;gap:16px;">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <label for="id_username" style="font-weight:bold;">Имя пользователя:</label>
+    <input type="text" name="username" id="id_username" required style="padding:8px;border-radius:4px;border:1px solid #ccc;">
+    <label for="id_password" style="font-weight:bold;">Пароль:</label>
+    <input type="password" name="password" id="id_password" required style="padding:8px;border-radius:4px;border:1px solid #ccc;">
+    <button type="submit" style="padding:10px 0;border-radius:4px;background:#222;color:#fff;border:none;font-weight:bold;margin-top:8px;">Войти</button>
+  </form>
+</div>
+{% endblock %}

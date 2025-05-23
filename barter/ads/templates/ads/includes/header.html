@@ -1,0 +1,40 @@
+{% load static %}
+{% with request.resolver_match.view_name as view_name %}
+<nav class="navbar">
+  <div style="flex: 1; display: flex; align-items: center;">
+    {% if request.user.is_authenticated %}
+      <ul style="list-style: none; padding: 0; margin: 0; display: flex; gap: 18px;">
+        <li>
+          <a class="{% if view_name == 'ads:index_page' %}active{% endif %}" href="{% url 'ads:ad_create' %}">Создать объявлениe</a>
+        </li>
+        <li>
+          <a class="{% if view_name == 'ads:index_page' %}active{% endif %}" href="{% url 'ads:index_page' %}?user={{ request.user.id }}">Мои объявления</a>
+        </li>
+        <li>
+          <a class="{% if view_name == 'ads:index_page' %}active{% endif %}" href="#">Мои предложения</a>
+        </li>
+      </ul>
+    {% endif %}
+  </div>
+  <ul style="display: flex; list-style: none; margin: 0; padding: 0; align-items: center;">
+    {% if request.user.is_authenticated %}
+      <li>
+        <form method="post" action="{% url 'users:logout' %}">
+          {% csrf_token %}
+          <button type="submit">
+            Выйти
+          </button>
+        </form>
+
+      </li>
+    {% else %}
+      <li>
+        <a class="{% if view_name == 'users:login' %}active{% endif %}" href="{% url 'users:login' %}">Войти</a>
+      </li>
+      <li>
+        <a class="{% if view_name == 'users:register' %}active{% endif %}" href="{% url 'users:register' %}">Регистрация</a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endwith %}

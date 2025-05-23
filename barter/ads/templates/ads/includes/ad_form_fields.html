@@ -1,0 +1,13 @@
+{{ form.non_field_errors }}
+{% for field in form %}
+  <label for="{{ field.id_for_label }}" style="font-weight:bold;">{{ field.label }}:</label>
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    {{ field }}
+    {% if field.help_text %}
+      <small style="color: #666;">{{ field.help_text }}</small>
+    {% endif %}
+  </div>
+  {% for error in field.errors %}
+    <div style="color:#c00;font-size:0.95em;">{{ error }}</div>
+  {% endfor %}
+{% endfor %}

@@ -1,3 +1,107 @@
-from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, render, redirect
+from django.db.models import Q
 
-# Create your views here.
+from ads import (
+    constants as ads_constants,
+    forms as ads_forms,
+    models as ads_models,
+    utils as ads_utils
+)
+
+
+def index_page(request):
+    """
+    Главная страница:
+    Доступные GET-параметры:
+      - q: поисковый запрос по заголовку и описанию
+      - category: фильтрация по категории
+      - condition: фильтрация по состоянию товара
+      - user: фильтрация по пользователю (id)
+    """
+    get_params = request.GET.copy()
+    category = get_params.get('category', '')
+    condition = get_params.get('condition', '')
+    user = get_params.get('user', '')
+    query = get_params.get('q', '')
+    get_params.pop('page', None)
+
+    filters = {
+        'category': category,
+        'condition': condition,
+        'user__id': user,
+    }
+
+    # Удаляем пустые значения
+    filters = {key: value for key, value in filters.items() if value}
+
+    #Получит все Ads у которых нет принятых предложений
+    ads = ads_models.Ad.active_objects.all()
+    if query:
+        ads = ads.filter(
+            Q(title__icontains=query) | Q(description__icontains=query)
+        )
+    ads = ads.filter(**filters)
+
+    page_obj = ads_utils.paginator_method(
+        request, ads, ads_constants.ADS_PER_PAGE
+    )
+    context = {
+        'page_obj': page_obj,
+        'query': query,
+        'category': category,
+        'condition': condition,
+        'user': user,
+        'category_choices': ads_models.Ad.CATEGORY_CHOICES,
+        'condition_choices': ads_models.Ad.CONDITION_CHOICES,
+        'extra_query': get_params.urlencode(),
+    }
+
+    return render(request, ads_constants.TEMPATE_INDEX_PAGE, context)
+
+
+@login_required
+def ad_create(request):
+    """
+    Создание нового объявления.
+    """
+    form = ads_forms.AdForm(request.POST or None, files=request.FILES or None)
+    if request.method == 'POST' and form.is_valid():
+        ad = form.save(commit=False)
+        ad.user = request.user
+        ad.save()
+        return redirect('ads:index_page')
+    return render(
+        request,
+        ads_constants.TEMPATE_AD_CREATE_PAGE,
+        {'form': form}
+    )
+
+
+@login_required
+def ad_update(request, pk):
+    """
+    Обновление объявления.
+    """
+
+    ad = get_object_or_404(ads_models.Ad, pk=pk)
+
+    if not ads_utils.can_edit_ad(ad, request.user):
+        return redirect('ads:index_page')
+
+    form = ads_forms.AdForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=ad
+    )
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        return redirect('ads:index_page')
+
+    context = {
+        'form': form,
+        'ad': ad,
+    }
+
+    return render(request, ads_constants.TEMPATE_AD_UPDATE_PAGE, context)

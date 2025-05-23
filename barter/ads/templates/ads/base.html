@@ -1,0 +1,19 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Бартер{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'ads/style.css' %}">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; }
+        .navbar { background: #222; color: #fff; padding: 12px 24px; display: flex; justify-content: flex-end; }
+        .navbar a { color: #fff; margin-left: 18px; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <header>{% include "ads/includes/header.html" %}</header>
+    {% block content %}{% endblock %}
+</body>
+</html>
+
