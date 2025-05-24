@@ -49,9 +49,21 @@
                         <div style="margin-top:16px;">
                             {% if request.user.is_authenticated %}
                                 {% if ad.user_id == request.user.id %}
-                                    <a href="{% url 'ads:ad_update' ad.id %}" style="display:inline-block;padding:8px 18px;background:#222;color:#fff;border-radius:4px;text-decoration:none;font-weight:bold;box-shadow:0 1px 4px #ccc;">Изменить объявление</a>
+                                    <a href="{% url 'ads:ad_update' ad.id %}"
+                                       style="display:inline-block;
+                                              padding:8px 18px;
+                                              background:#e0f0ff;
+                                              color:#155a8a;
+                                              border: 1px solid #b9d6ee;
+                                              border-radius:4px;
+                                              text-decoration:none;
+                                              font-weight:bold;
+                                              box-shadow:0 1px 4px #ccc;">
+                                        Изменить объявление
+                                    </a>
+
                                 {% else %}
-                                    <a href="#" style="display:inline-block;padding:8px 18px;background:#222;color:#fff;border-radius:4px;text-decoration:none;font-weight:bold;box-shadow:0 1px 4px #ccc;">Предложить обмен</a>
+                                    <a href="{% url 'ads:prop_create' ad.id %}" style="display:inline-block;padding:8px 18px;background:#222;color:#fff;border-radius:4px;text-decoration:none;font-weight:bold;box-shadow:0 1px 4px #ccc;">Предложить обмен</a>
                                 {% endif %}
                             {% endif %}
                         </div>

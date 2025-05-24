@@ -21,9 +21,8 @@ DEBUG = os.environ.get('DJANGO_DEBUG') == 'True'
 SECRET_KEY = 'django-insecure-*i!)dtkhe5cjy*v9q3eaan6!_m&f_gt_47#5gjetjb9xpb#5^1'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -37,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'ads',
+    'core',
     'users'
 ]
 
@@ -81,9 +81,8 @@ DATABASES = {
         'NAME': os.environ.get('DATABASE_NAME'),
         'USER': os.environ.get('DATABASE_USER'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
-        'HOST': 'localhost',
-        'PORT': os.environ.get('DATABASE_PORT'),
-
+        'HOST': 'db',
+        'PORT': 5432,
     }
 }
 
@@ -123,11 +122,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(PROJECT_DIR, 'static')
+STATIC_ROOT = '/static'
 
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(PROJECT_DIR, 'media')
+MEDIA_ROOT = '/media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -136,6 +135,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGOUT_REDIRECT_URL = 'ads:index_page'
 LOGIN_REDIRECT_URL = 'ads:index_page'
+
+CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
 
 if DEBUG:
     ALLOWED_HOSTS.append("127.0.0.1")

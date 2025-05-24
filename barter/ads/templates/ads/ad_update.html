@@ -5,18 +5,27 @@
 {% block content %}
 <div class="container" style="max-width:500px;margin:6px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px #ddd;padding:32px;">
   <h2 style="margin-bottom:24px;text-align:center;">Редактировать объявление</h2>
+
   <form method="post" enctype="multipart/form-data" id="ad-update-form" style="display:flex;flex-direction:column;gap:16px;">
     {% csrf_token %}
     {% include "ads/includes/ad_form_fields.html" %}
-    <div style="display: flex; gap: 12px; justify-content: center;">
-      <button type="button" id="show-confirm" style="padding:10px 18px;border-radius:4px;background:#222;color:#fff;border:none;font-weight:bold;margin-top:8px;">Обновить</button>
-      <a href="{% url 'ads:index_page' %}" style="padding:10px 18px;border-radius:4px;background:#eee;color:#222;border:none;font-weight:bold;margin-top:8px;text-decoration:none;display:inline-block;">К объявлениям</a>
-    </div>
   </form>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top:16px;">
+    <div style="display: flex; gap: 12px;">
+      <button type="button" id="show-confirm" style="padding:10px 18px;border-radius:4px;background:#222;color:#fff;border:none;font-weight:bold;">Обновить</button>
+      <a href="{% url 'ads:index_page' %}" style="padding:10px 18px;border-radius:4px;background:#eee;color:#222;border:none;font-weight:bold;text-decoration:none;display:inline-block;">К объявлениям</a>
+    </div>
+    <form id="delete-ad-form" action="{% url 'ads:ad_delete' ad.id %}" method="post" style="margin:0;">
+      {% csrf_token %}
+      <button type="button" id="show-delete-confirm" style="padding:10px 18px;border-radius:4px;background:#ffcccc;color:#900;border:none;font-weight:bold;box-shadow:0 1px 4px #ccc;cursor:pointer;">Удалить</button>
+    </form>
+  </div>
 </div>
 {% include "ads/includes/ad_modal.html" with modal_title="Подтвердите обновление" %}
+{% include "ads/includes/ad_modal.html" with modal_title="Подтвердите удаление" %}
 {% block extra_js %}
-<script src="{% static 'ads/ad_modal.js' %}"></script>
+<script src="{% static 'ads/js/ad_modal.js' %}"></script>
 {% endblock %}
 {% endblock %}
 

@@ -4,17 +4,20 @@ from ads import models as ads_models
 
 admin.site.disable_action("delete_selected")
 
-@admin.register(ads_models.Ad)
-class AdAdmin(admin.ModelAdmin):
 
+class BaseAdAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'user', 'title' , 'category', 'condition',
+        'id', 'user', 'title', 'category', 'condition',
         'created_at', 'updated_at',
     )
     list_display_links = ('id',)
     list_filter = ('category', 'condition', 'created_at')
     search_fields = ('title', 'description', 'user__username')
     readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(ads_models.Ad)
+class AdAdmin(BaseAdAdmin):
     actions = ['mark_deleted']
 
     def mark_deleted(self, request, queryset):
@@ -27,8 +30,7 @@ class AdAdmin(admin.ModelAdmin):
 
 
 @admin.register(ads_models.DeletedAd)
-class DeletedAdAdmin(AdAdmin):
-
+class DeletedAdAdmin(BaseAdAdmin):
     actions = ['mark_undeleted']
 
     def mark_undeleted(self, request, queryset):

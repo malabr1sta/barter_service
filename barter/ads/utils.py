@@ -1,12 +1,16 @@
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest
 from django.db.models.query import QuerySet
-from typing import Union
+from typing import Union, Sequence, Any
+
+from ads import models as ads_models
 
 
 def paginator_method(
     request: HttpRequest,
-    objects: Union[QuerySet, list],
+    objects: Union[QuerySet, Sequence[Any]],
     number_per_page: int
 ):
     """
@@ -17,14 +21,14 @@ def paginator_method(
     return paginator.get_page(page_number)
 
 
-def can_edit_ad(ad, user) -> bool:
+def can_edit_ad(ad: ads_models.Ad, user: User):
     """
     Проверяет, может ли пользователь редактировать объявление.
 
-    Возвращает False, если:
-    - пользователь не автор объявления
-    - объявление помечено как удалённое
-    - у объявления уже есть принятая заявка на обмен
+    Выбрасывает PermissionDenied (403), если:
+    - пользователь не является автором объявления;
+    - объявление помечено как удалённое;
+    - у объявления уже есть принятая заявка на обмен.
     """
-    return ad.user == user and not ad.deleted and not ad.has_accepted_proposal()
-
+    if ad.user != user or ad.deleted or ad.has_accepted_proposal():
+        raise PermissionDenied

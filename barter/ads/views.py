@@ -87,8 +87,7 @@ def ad_update(request, pk):
 
     ad = get_object_or_404(ads_models.Ad, pk=pk)
 
-    if not ads_utils.can_edit_ad(ad, request.user):
-        return redirect('ads:index_page')
+    ads_utils.can_edit_ad(ad, request.user)
 
     form = ads_forms.AdForm(
         request.POST or None,
@@ -105,3 +104,46 @@ def ad_update(request, pk):
     }
 
     return render(request, ads_constants.TEMPATE_AD_UPDATE_PAGE, context)
+
+
+@login_required
+def ad_soft_delete(request, pk):
+    """
+    Удалениe объявления.
+    """
+
+    ad = get_object_or_404(ads_models.Ad, pk=pk)
+
+    ads_utils.can_edit_ad(ad, request.user)
+
+    if request.method == 'POST':
+        ad.deleted = True
+        ad.save()
+        return redirect('ads:index_page')
+
+
+@login_required
+def proposal_create(request, ad_receiver_pk):
+    """
+    Создание предложения обмена.
+    """
+    ad_receiver = get_object_or_404(ads_models.Ad, pk=ad_receiver_pk)
+    form = ads_forms.ExchangeProposalForm(
+        request.POST or None,
+        ad_receiver=ad_receiver,
+        user=request.user
+    )
+
+    if request.method == 'POST' and form.is_valid():
+        proposal = form.save(commit=False)
+        proposal.ad_receiver = ad_receiver
+        proposal.save()
+        return redirect('ads:index_page')
+
+    context = {'form': form, 'ad_receiver': ad_receiver}
+
+    return render(
+        request,
+        ads_constants.TEMPATE_PROPOSAL_CREATE_PAGE,
+        context
+    )

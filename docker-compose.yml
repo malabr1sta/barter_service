@@ -1,5 +1,4 @@
 services:
-
   db:
     image: postgres
     restart: always
@@ -8,5 +7,27 @@ services:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_DB: ${DATABASE_NAME}
     ports:
-      - ${DATABASE_PORT}:5432
+      - 5432:5432
 
+  web:
+    build: .
+    container_name: barter_web_server
+    command: gunicorn barter.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - ./static:/static
+      - ./media:/media
+    expose:
+      - 8000
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./static:/static
+      - ./media:/media
+    depends_on:
+      - web

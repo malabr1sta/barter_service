@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.core.validators import MaxLengthValidator
 from django.db import models
 
@@ -32,7 +33,6 @@ class BaseModel(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
-        ordering = ['created_at', 'updated_at']
         abstract = True
 
 
@@ -116,6 +116,7 @@ class Ad(BaseModel):
         )
 
     class Meta:
+        ordering = ['-created_at', '-updated_at']
         verbose_name = 'Объявление'
         verbose_name_plural = 'Объявления'
 
@@ -164,9 +165,45 @@ class ExchangeProposal(BaseModel):
         verbose_name='статус'
     )
 
+    @staticmethod
+    def cancel_related_proposals(ad_sender, ad_receiver):
+        """
+        Отменяет все предложения, где ad_sender или ad_receiver участвуют
+        как отправитель или получатель.
+        """
+        ExchangeProposal.objects.filter(
+            (Q(ad_sender=ad_sender) |
+             Q(ad_receiver=ad_sender) |
+             Q(ad_sender=ad_receiver) |
+             Q(ad_receiver=ad_receiver)),
+            status=ExchangeProposal.PENDING
+        ).update(status=ExchangeProposal.DECLINED)
+
+    @staticmethod
+    def mark_ads_deleted(ad_sender, ad_receiver):
+        """
+        Помечает оба объявления (отправителя и получателя) как deleted=True.
+        """
+        ad_sender.deleted = True
+        ad_sender.save(update_fields=['deleted'])
+        ad_receiver.deleted = True
+        ad_receiver.save(update_fields=['deleted'])
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            old = ExchangeProposal.objects.get(pk=self.pk)
+            if old.status != self.ACCEPTED and self.status == self.ACCEPTED:
+                self.mark_ads_deleted(self.ad_sender, self.ad_receiver)
+                self.cancel_related_proposals(self.ad_sender, self.ad_receiver)
+        elif self.status == self.ACCEPTED:
+            self.mark_ads_deleted(self.ad_sender, self.ad_receiver)
+            self.cancel_related_proposals(self.ad_sender, self.ad_receiver)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.ad_sender}/{self.ad_receiver}"
 
     class Meta:
+        ordering = ['created_at', 'updated_at']
         verbose_name = 'Предложение обмена'
         verbose_name_plural = 'Предложения обмена'

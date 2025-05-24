@@ -1,0 +1,8 @@
+{% extends "ads/base.html" %}
+{% block title %}Error 403{% endblock %}
+{% block content %}
+  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh;">
+    <h1>У вас недостаточно прав.</h1>
+    <a href="{% url 'ads:index_page' %}">Идите на главную</a>
+  </div>
+{% endblock %}
