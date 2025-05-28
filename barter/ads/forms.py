@@ -32,30 +32,72 @@ class AdForm(forms.ModelForm):
 class ExchangeProposalForm(forms.ModelForm):
     class Meta:
         model = ads_models.ExchangeProposal
-        fields = ['ad_sender', 'comment']
+        fields = ['ad_sender', 'comment_sender']
         widgets = {
-            'comment': forms.Textarea(attrs={'rows': 3}),
+            'comment_sender': forms.Textarea(attrs={'rows': 3}),
         }
 
     def __init__(self, *args, ad_receiver=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if user is not None:
-            # Исключаем объявления с "pending" предложением к ad_receiver
-            exclude_received = Q(
-                received_proposals__status=ads_models.ExchangeProposal.PENDING,
-                received_proposals__ad_sender=ad_receiver
-            )
-            # Исключаем объявления с "pending" предложением от ad_receiver
-            exclude_sent = Q(
-                sent_proposals__status=ads_models.ExchangeProposal.PENDING,
-                sent_proposals__ad_receiver=ad_receiver
+            self.fields['ad_sender'].queryset = (
+                ads_models.Ad.get_available_ads_for_exchange(
+                    ad_receiver,
+                    user,
+                )
             )
 
-            self.fields['ad_sender'].queryset = (
-                ads_models.Ad.active_objects
-                .filter(user=user)
-                # Исключаем объявления самому себе
-                .exclude(user=ad_receiver.user)
-                .exclude(exclude_received)
-                .exclude(exclude_sent)
+
+class ExchangeProposalUpdateForm(forms.ModelForm):
+    class Meta:
+        model = ads_models.ExchangeProposal
+        fields = []
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        proposal = self.instance
+
+        # Определяем роль пользователя
+        is_sender = proposal.ad_sender.user_id == user.id
+        is_receiver = proposal.ad_receiver.user_id == user.id
+
+        # Для отправителя
+        if is_sender:
+            self.fields['comment_sender'] = forms.CharField(
+                label="Комментарий",
+                required=False,
+                widget=forms.Textarea(attrs={'rows': 3}),
+                initial=proposal.comment_sender
             )
+            self.fields['status'] = forms.ChoiceField(
+                label="Статус",
+                choices=[
+                    (ads_models.ExchangeProposal.PENDING, 'Ожидает'),
+                    (ads_models.ExchangeProposal.DECLINED, 'Отклонен')
+                ],
+                required=True
+            )
+
+        # Для получателя
+        if is_receiver:
+            self.fields['comment_receiver'] = forms.CharField(
+                label="Комментарий",
+                required=False,
+                widget=forms.Textarea(attrs={'rows': 3}),
+                initial=proposal.comment_receiver
+            )
+            self.fields['status'] = forms.ChoiceField(
+                label="Статус",
+                choices=ads_models.ExchangeProposal.STATUS_CHOICES,
+                required=True
+            )
+
+    def save(self, commit=True):
+        proposal = super().save(commit=False)
+        for field in ('comment_sender', 'comment_receiver', 'status'):
+            if field in self.cleaned_data:
+                setattr(proposal, field, self.cleaned_data[field])
+        if commit:
+            proposal.save()
+        return proposal

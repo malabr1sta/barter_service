@@ -14,8 +14,8 @@ services:
     container_name: barter_web_server
     command: gunicorn barter.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - ./static:/static
-      - ./media:/media
+      - ./static:/app/static
+      - ./media:/app/media
     expose:
       - 8000
     depends_on:
@@ -27,7 +27,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./static:/static
-      - ./media:/media
+      - ./static:/app/static
+      - ./media:/app/media
     depends_on:
       - web

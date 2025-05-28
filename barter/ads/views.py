@@ -147,3 +147,80 @@ def proposal_create(request, ad_receiver_pk):
         ads_constants.TEMPATE_PROPOSAL_CREATE_PAGE,
         context
     )
+
+
+@login_required
+def proposals_list(request):
+    """
+    Отображает список предложений обмена для текущего пользователя.
+    Доступные GET-параметры:
+        - status: по статусу предложения (ожидает, принят, отклонен)
+        - other_user: по другому пользователю, с которым есть предложения
+        - role: по роли пользователя в предложении (отправитель или получатель)
+    """
+    get_params = request.GET.copy()
+    status = get_params.get('status', '')
+    other_user_id = get_params.get('other_user', '')
+    role = get_params.get('role', '')
+    get_params.pop('page', None)
+
+    user = request.user
+
+    proposals = ads_models.ExchangeProposal.get_user_proposals(user)
+
+    if status:
+        proposals = proposals.filter(status=status)
+
+    # Фильтрация по другому пользователю
+    if other_user_id:
+        proposals = proposals.filter(
+            Q(ad_sender__user__id=other_user_id) |
+            Q(ad_receiver__user__id=other_user_id)
+        )
+
+    # Фильтрация по роли пользователя в предложении
+    if role == ads_models.ExchangeProposal.SENDER:
+        proposals = proposals.filter(ad_sender__user=user)
+    elif role == ads_models.ExchangeProposal.RECEIVER:
+        proposals = proposals.filter(ad_receiver__user=user)
+
+    page_obj = ads_utils.paginator_method(
+        request, proposals,
+        ads_constants.PROPOSAL_PER_PAGE
+    )
+
+    context = {
+        'page_obj': page_obj,
+        'status_choices': ads_models.ExchangeProposal.STATUS_CHOICES,
+        'role_choices': ads_models.ExchangeProposal.ROLE_CHOICES,
+        'status': status,
+        'other_user': other_user_id,
+        'role': role,
+        'extra_query': get_params.urlencode(),
+    }
+    return render(request, ads_constants.TEMPATE_PROPOSAL_LIST_PAGE, context)
+
+
+@login_required
+def proposal_update(request, pk):
+    """
+    редактирование комментарий и статус предложения.
+    - Отправитель: только comment_sender и статус "отклонен"
+    - Получатель: только comment_receiver и статус "отклонен" или "принят"
+    """
+    proposal = get_object_or_404(ads_models.ExchangeProposal, pk=pk)
+    user = request.user
+    form = ads_forms.ExchangeProposalUpdateForm(
+        request.POST or None, instance=proposal, user=user
+    )
+
+    ads_utils.can_edit_proposal(proposal, user)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect('ads:proposals_list')
+
+    return render(request, ads_constants.TEMPATE_PROPOSAL_UPDATE_PAGE, {
+        "form": form,
+        "proposal": proposal,
+    })

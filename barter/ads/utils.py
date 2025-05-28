@@ -32,3 +32,22 @@ def can_edit_ad(ad: ads_models.Ad, user: User):
     """
     if ad.user != user or ad.deleted or ad.has_accepted_proposal():
         raise PermissionDenied
+
+
+def can_edit_proposal(proposal: ads_models.ExchangeProposal, user: User):
+    """
+    Проверяет, может ли пользователь редактировать Предложение.
+
+    Выбрасывает PermissionDenied (403), если:
+    - пользователь не является отправителем или получателем;
+    - объявление не в статусе Ожидания;
+    """
+    is_sender = proposal.ad_sender.user_id == user.id
+    is_receiver = proposal.ad_receiver.user_id == user.id
+
+    if (
+        proposal.status != ads_models.ExchangeProposal.PENDING
+        or not (is_sender or is_receiver)
+    ):
+        raise PermissionDenied
+

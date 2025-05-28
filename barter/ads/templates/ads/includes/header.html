@@ -5,13 +5,13 @@
     {% if request.user.is_authenticated %}
       <ul style="list-style: none; padding: 0; margin: 0; display: flex; gap: 18px;">
         <li>
-          <a class="{% if view_name == 'ads:index_page' %}active{% endif %}" href="{% url 'ads:ad_create' %}">Создать объявлениe</a>
+          <a class="{% if view_name == 'ads:index_page' %}active{% endif %}" href="{% url 'ads:ad_create' %}">создать объявлениe</a>
         </li>
         <li>
-          <a class="{% if view_name == 'ads:index_page' %}active{% endif %}" href="{% url 'ads:index_page' %}?user={{ request.user.id }}">Мои объявления</a>
+          <a class="{% if view_name == 'ads:index_page' %}active{% endif %}" href="{% url 'ads:index_page' %}?user={{ request.user.id }}">мои объявления</a>
         </li>
         <li>
-          <a class="{% if view_name == 'ads:index_page' %}active{% endif %}" href="#">Мои предложения</a>
+          <a class="{% if view_name == 'ads:index_page' %}active{% endif %}" href="{% url 'ads:proposals_list' %}">Мои предложения</a>
         </li>
       </ul>
     {% endif %}

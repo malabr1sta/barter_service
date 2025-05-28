@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.core.validators import MaxLengthValidator
 from django.db import models
@@ -102,6 +103,39 @@ class Ad(BaseModel):
     def __str__(self):
         return self.title
 
+    @classmethod
+    def get_available_ads_for_exchange(cls, ad_receiver, user):
+        """
+        Возвращает QuerySet объявлений пользователя `user`,
+        которые можно предложить в обмен на `ad_receiver`.
+
+        Аргументы:
+            user (User): Пользователь, чьи объявления ищутся.
+            ad_receiver (Ad): Объявление, на которое хотят обменять.
+
+        Возвращает:
+            QuerySet: Доступные для обмена объявления пользователя.
+        """
+
+        # Исключаем объявления с "pending" предложением к ad_receiver
+        exclude_received = Q(
+            received_proposals__status='pending',
+            received_proposals__ad_sender=ad_receiver
+        )
+
+        # Исключаем объявления с "pending" предложением от ad_receiver
+        exclude_sent = Q(
+            sent_proposals__status='pending',
+            sent_proposals__ad_receiver=ad_receiver
+        )
+        return (
+            cls.active_objects
+            .filter(user=user)
+            .exclude(user=getattr(ad_receiver, "user", None))
+            .exclude(exclude_received)
+            .exclude(exclude_sent)
+        )
+
     def has_accepted_proposal(self):
         """
         Проверяет, есть ли у данного объявления
@@ -114,6 +148,20 @@ class Ad(BaseModel):
             self.sent_proposals.filter(status='accepted').exists() or
             self.received_proposals.filter(status='accepted').exists()
         )
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None and self.deleted:
+            old = get_object_or_404(Ad, pk=self.pk)
+            if old.deleted != self.deleted:
+                self.received_proposals.filter(
+                    deleted=False,
+                    status=ExchangeProposal.PENDING
+                ).update(status=ExchangeProposal.DECLINED)
+                self.sent_proposals.filter(
+                    deleted=False,
+                    status=ExchangeProposal.PENDING
+                ).update(status=ExchangeProposal.DECLINED)
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ['-created_at', '-updated_at']
@@ -141,6 +189,14 @@ class ExchangeProposal(BaseModel):
         (DECLINED, 'Отклонен'),
     ]
 
+    SENDER = 'sender'
+    RECEIVER = 'receiver'
+
+    ROLE_CHOICES = [
+        (SENDER, 'Отправитель'),
+        (RECEIVER, 'Получатель'),
+    ]
+
     ad_sender = models.ForeignKey(
         Ad,
         related_name='sent_proposals',
@@ -153,10 +209,17 @@ class ExchangeProposal(BaseModel):
         on_delete=models.CASCADE,
         verbose_name='предложение получателя'
     )
-    comment = models.TextField(
+    comment_sender = models.TextField(
+        null=True,
         blank=True,
         validators=[MaxLengthValidator(500)],
-        verbose_name='комментарий'
+        verbose_name='комментарий отправителя'
+    )
+    comment_receiver = models.TextField(
+        null=True,
+        blank=True,
+        validators=[MaxLengthValidator(500)],
+        verbose_name='комментарий получателя'
     )
     status = models.CharField(
         max_length=10,
@@ -165,13 +228,13 @@ class ExchangeProposal(BaseModel):
         verbose_name='статус'
     )
 
-    @staticmethod
-    def cancel_related_proposals(ad_sender, ad_receiver):
+    @classmethod
+    def cancel_related_proposals(cls, ad_sender, ad_receiver):
         """
         Отменяет все предложения, где ad_sender или ad_receiver участвуют
         как отправитель или получатель.
         """
-        ExchangeProposal.objects.filter(
+        cls.objects.filter(
             (Q(ad_sender=ad_sender) |
              Q(ad_receiver=ad_sender) |
              Q(ad_sender=ad_receiver) |
@@ -179,24 +242,42 @@ class ExchangeProposal(BaseModel):
             status=ExchangeProposal.PENDING
         ).update(status=ExchangeProposal.DECLINED)
 
-    @staticmethod
-    def mark_ads_deleted(ad_sender, ad_receiver):
+    @classmethod
+    def get_user_proposals(cls, user):
+        """
+        Возвращает QuerySet всех предложений обмена,
+        в которых пользователь участвует
+        как отправитель или получатель.
+        """
+        return cls.objects.filter(
+            Q(ad_sender__user=user) | Q(ad_receiver__user=user)
+        ).select_related('ad_sender', 'ad_receiver')
+
+    def _mark_ads_deleted(self):
         """
         Помечает оба объявления (отправителя и получателя) как deleted=True.
         """
-        ad_sender.deleted = True
-        ad_sender.save(update_fields=['deleted'])
-        ad_receiver.deleted = True
-        ad_receiver.save(update_fields=['deleted'])
+        self.ad_sender.deleted = True
+        self.ad_sender.save(update_fields=['deleted'])
+        self.ad_receiver.deleted = True
+        self.ad_receiver.save(update_fields=['deleted'])
+
+    def _has_just_been_accepted(self):
+        """
+        Возвращает True, если:
+        - объект новый (ещё не был сохранён) и его статус — ACCEPTED
+        - объект уже существовал, статус был НЕ ACCEPTED, теперь стал ACCEPTED
+        """
+        if self.status != self.ACCEPTED:
+            return False
+        if self.pk is None:
+            return True  # Новый объект сразу создаётся с ACCEPTED
+        old = get_object_or_404(ExchangeProposal, pk=self.pk)
+        return old.status != self.ACCEPTED
 
     def save(self, *args, **kwargs):
-        if self.pk is not None:
-            old = ExchangeProposal.objects.get(pk=self.pk)
-            if old.status != self.ACCEPTED and self.status == self.ACCEPTED:
-                self.mark_ads_deleted(self.ad_sender, self.ad_receiver)
-                self.cancel_related_proposals(self.ad_sender, self.ad_receiver)
-        elif self.status == self.ACCEPTED:
-            self.mark_ads_deleted(self.ad_sender, self.ad_receiver)
+        if self._has_just_been_accepted():
+            self._mark_ads_deleted()
             self.cancel_related_proposals(self.ad_sender, self.ad_receiver)
         super().save(*args, **kwargs)
 
@@ -204,6 +285,6 @@ class ExchangeProposal(BaseModel):
         return f"{self.ad_sender}/{self.ad_receiver}"
 
     class Meta:
-        ordering = ['created_at', 'updated_at']
+        ordering = ['-created_at', '-updated_at']
         verbose_name = 'Предложение обмена'
         verbose_name_plural = 'Предложения обмена'

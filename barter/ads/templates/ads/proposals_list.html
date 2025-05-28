@@ -1,0 +1,114 @@
+{% extends "ads/base.html" %}
+{% block title %}Мои предложения | Бартер{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:1000px;margin:32px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px #ddd;padding:32px;">
+    <div style="margin-bottom:16px;">
+        <a href="{% url 'ads:index_page' %}" style="padding:8px 18px;border-radius:4px;background:#eee;color:#222;border:none;font-weight:bold;text-decoration:none;display:inline-block;">К объявлениям</a>
+    </div>
+    <h1>Мои предложения обмена</h1>
+    <form method="get" style="margin-bottom:24px;display:flex;gap:12px;flex-wrap:wrap;">
+        <select name="status" style="flex:1;min-width:120px;padding:8px;border-radius:4px;border:1px solid #ccc;">
+            <option value="">Статус</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select name="role" style="flex:1;min-width:120px;padding:8px;border-radius:4px;border:1px solid #ccc;">
+            <option value="">Роль</option>
+            {% for value, label in role_choices %}
+                <option value="{{ value }}" {% if role == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" style="padding:8px 18px;border-radius:4px;background:#222;color:#fff;border:none;font-weight:bold;">Фильтровать</button>
+        {% if other_user %}
+            <input type="hidden" name="other_user" value="{{ other_user }}">
+        {% endif %}
+    </form>
+    {% if status or role or other_user %}
+        <div style="margin-bottom:16px;">
+            <a href="{% url 'ads:proposals_list' %}" style="padding:8px 18px;border-radius:4px;background:#eee;color:#222;border:none;font-weight:bold;text-decoration:none;display:inline-block;">Показать все предложения</a>
+        </div>
+    {% endif %}
+
+    <ul class="proposal-list" style="list-style:none;padding:0;margin:0;">
+        {% for proposal in page_obj %}
+            <li style="border-bottom:1px solid #eee;padding:16px 0;">
+                <div style="display:flex;align-items:flex-start;gap:24px;">
+                    <!-- Отправленное объявление -->
+                    <div style="flex:1;">
+                        <div style="font-size:1.1em;font-weight:bold;">Отправитель</div>
+                        <div style="font-size:1em;font-weight:bold;">{{ proposal.ad_sender.title|escape }}</div>
+                        <div style="color:#888;font-size:0.95em;">
+                            Категория: {{ proposal.ad_sender.get_category_display|default:"—" }} |
+                            Состояние: {{ proposal.ad_sender.get_condition_display|default:"—" }} |
+                            Автор:
+                            {% if proposal.ad_sender.user.id != request.user.id %}
+                                <a href="{% url 'ads:proposals_list' %}?other_user={{ proposal.ad_sender.user.id }}{% if extra_query %}&{{ extra_query }}{% endif %}" style="color:#222;text-decoration:underline;">{{ proposal.ad_sender.user.username }}</a>
+                            {% else %}
+                                {{ proposal.ad_sender.user.username }}
+                            {% endif %}
+                        </div>
+                        <div style="margin-top:8px; max-width: 45ch; word-break: break-word; white-space: pre-line;">
+                            {{ proposal.ad_sender.description }}
+                        </div>
+                        {% if proposal.ad_sender.image_url %}
+                        <div style="margin-top:8px;">
+                            <img src="{{ proposal.ad_sender.image_url.url }}" alt="Фото" style="width:120px;height:80px;object-fit:cover;border-radius:6px;box-shadow:0 1px 4px #ccc;">
+                        </div>
+                        {% endif %}
+                        {% if proposal.comment_sender %}
+                        <div style="margin-top:8px;color:#888;">{{ proposal.comment_sender }}</div>
+                        {% endif %}
+                    </div>
+                    <!-- Получаемое объявление -->
+                    <div style="flex:1;">
+                        <div style="font-size:1.1em;font-weight:bold;">Получатель</div>
+                        <div style="font-size:1em;font-weight:bold;">{{ proposal.ad_receiver.title|escape }}</div>
+                        <div style="color:#888;font-size:0.95em;">
+                            Категория: {{ proposal.ad_receiver.get_category_display|default:"—" }} |
+                            Состояние: {{ proposal.ad_receiver.get_condition_display|default:"—" }} |
+                            Автор:
+                            {% if proposal.ad_receiver.user.id != request.user.id %}
+                                <a href="{% url 'ads:proposals_list' %}?other_user={{ proposal.ad_receiver.user.id }}{% if extra_query %}&{{ extra_query }}{% endif %}" style="color:#222;text-decoration:underline;">{{ proposal.ad_receiver.user.username }}</a>
+                            {% else %}
+                                {{ proposal.ad_receiver.user.username }}
+                            {% endif %}
+                        </div>
+                        <div style="margin-top:8px; max-width: 45ch; word-break: break-word; white-space: pre-line;">
+                            {{ proposal.ad_receiver.description }}
+                        </div>
+                        {% if proposal.ad_receiver.image_url %}
+                        <div style="margin-top:8px;">
+                            <img src="{{ proposal.ad_receiver.image_url.url }}" alt="Фото" style="width:120px;height:80px;object-fit:cover;border-radius:6px;box-shadow:0 1px 4px #ccc;">
+                        </div>
+                        {% endif %}
+                        {% if proposal.comment_receiver %}
+                        <div style="margin-top:8px;color:#888;">{{ proposal.comment_receiver }}</div>
+                        {% endif %}
+                    </div>
+                    <!-- Статус и дата -->
+                    <div style="flex:0 0 160px;text-align:center;">
+                        <div style="font-size:1em;font-weight:bold;margin-bottom:8px;">
+                            Статус: {{ proposal.get_status_display }}
+                        </div>
+                        <div style="color:#888;font-size:0.95em;">
+                            Дата: {{ proposal.created_at|date:"d.m.Y H:i" }}
+                        </div>
+                        {% if proposal.status == 'pending' %}
+                        <div style="margin-top:12px;">
+                            <a href="{% url 'ads:prop_update' proposal.id %}" style="display:inline-block;padding:8px 18px;background:#e0f0ff;color:#155a8a;border:1px solid #b9d6ee;border-radius:4px;text-decoration:none;font-weight:bold;box-shadow:0 1px 4px #ccc;">
+                                Редактировать
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+    <div style="margin-top:24px;text-align:center;">
+         {% include "ads/includes/paginator.html" %}
+    </div>
+</div>
+{% endblock %}

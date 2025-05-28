@@ -10,8 +10,6 @@ COPY . /app/
 
 WORKDIR /app/barter
 
-RUN python manage.py collectstatic --noinput
-
 EXPOSE 8000
 
 CMD ["gunicorn", "barter.wsgi:application", "--bind", "0.0.0.0:8000"]
