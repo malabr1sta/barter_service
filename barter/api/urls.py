@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework import permissions
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
+from djoser.views import UserViewSet
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -47,5 +48,10 @@ urlpatterns = [
         name='token-refresh'
     ),
     path('auth/token/verify/', TokenVerifyView.as_view(), name='token-verify'),
+    path(
+        'auth/register/',
+        UserViewSet.as_view({'post': 'create'}),
+        name='user-register'
+    ),
 ]
 
