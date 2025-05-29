@@ -78,6 +78,10 @@ docker exec -it barter_web_server python manage.py createsuperuser
 
 ---
 
+## 📄 Лицензия
+
+Проект распространяется под лицензией [MIT](LICENSE).
+
 
 ## 👤 Автор
 
