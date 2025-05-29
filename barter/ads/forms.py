@@ -1,5 +1,4 @@
 from django import forms
-from django.db.models import Q
 from ads import models as ads_models
 
 

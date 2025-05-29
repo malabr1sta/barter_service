@@ -11,6 +11,7 @@ handler403 = 'core.views.permission_denied'
 
 urlpatterns = [
     path('ads/', include('ads.urls')),
+    path('api/', include('api.urls')),
     path('admin/', admin.site.urls),
     path('users/', include('users.urls'))
 ]
