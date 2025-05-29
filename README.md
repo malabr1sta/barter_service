@@ -33,7 +33,10 @@ source venv/bin/activate
 # 3. Установите зависимости
 pip install -r requirements.txt
 
-# 4. Скопируйте файл окружения
+# 4. Соберите статику
+python ./barter/manage.py collectstatic
+
+# 5. Скопируйте файл окружения
 cp env_template .env
 ```
 
